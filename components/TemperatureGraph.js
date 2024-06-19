@@ -40,7 +40,8 @@ const TemperatureGraph = () => {
         const temperatureData = response.data.map(d => ({
           ...d,
           timestamp: new Date(d.timestamp)
-        }));
+        })).sort((a, b) => a.timestamp - b.timestamp); // Sort by timestamp
+
         setData(temperatureData);
         filterData(temperatureData, range);
 
