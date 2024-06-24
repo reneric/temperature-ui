@@ -194,9 +194,9 @@ const Dashboard = () => {
         <CardTitle className="text-2xl font-bold">Garage Temperature and Humidity Dashboard</CardTitle>
       </CardHeader> */}
       <CardContent className='p-0'>
-        <div className="mb-4 pt-8 pl-4 pr-4 bg-gray-900">
-          <Select onValueChange={handleRangeChange} defaultValue={range} className="bg-gray-900">
-            <SelectTrigger className="bg-gray-900 text-white border-gray-600">
+        <div className="mb-4 pt-8 pl-4 pr-4">
+          <Select onValueChange={handleRangeChange} defaultValue={range} className="">
+            <SelectTrigger className="bg-transparent text-white border-gray-600">
               <SelectValue placeholder="Select time range" />
             </SelectTrigger>
             <SelectContent>
