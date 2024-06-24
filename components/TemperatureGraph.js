@@ -20,7 +20,7 @@ const Dashboard = () => {
         const temperatureData = response.data.map(d => ({
           ...d,
           timestamp: new Date(d.timestamp).getTime(),
-          temperature: Math.round(parseFloat(d.temperature)) - 9,
+          temperature: parseFloat(d.temperature) - 9,
           humidity: parseFloat(d.humidity)
         })).sort((a, b) => a.timestamp - b.timestamp);
 
@@ -29,7 +29,7 @@ const Dashboard = () => {
 
         if (temperatureData.length > 0) {
           const latest = temperatureData[temperatureData.length - 1];
-          setLatestTemp(latest.temperature);
+          setLatestTemp(Math.round(parseInt(latest.temperature)));
           setLatestHumidity(latest.humidity);
         }
       })
@@ -72,7 +72,7 @@ const Dashboard = () => {
     return () => clearInterval(intervalId);
   }, []);
 
-  const formatTemperature = (temp) => `${temp.toFixed(1)}°F`;
+  const formatTemperature = (temp) => `${temp.toFixed(0)}°F`;
   const formatHumidity = (humidity) => `${humidity.toFixed(1)}%`;
 
   const generateTicks = (data, range) => {
@@ -144,87 +144,90 @@ const Dashboard = () => {
   console.log("Rendering chart with data:", filteredData);
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Garage Temperature and Humidity Dashboard</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4">
-            <Select onValueChange={handleRangeChange} defaultValue={range}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select time range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1H">Last 1 hour</SelectItem>
-                <SelectItem value="12H">Last 12 hours</SelectItem>
-                <SelectItem value="1D">Last 24 hours</SelectItem>
-                <SelectItem value="1W">Last 7 days</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <Card>
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="flex items-center">
-                  <Thermometer className="mr-2" />
-                  <div>
-                    <p className="text-sm font-medium">Temperature</p>
-                    <p className="text-2xl font-bold">{latestTemp ? formatTemperature(latestTemp) : 'N/A'}</p>
-                  </div>
+
+    <Card className='pt-0 pl-0 pr-0 pb-4'>
+      {/* <CardHeader>
+        <CardTitle className="text-2xl font-bold">Garage Temperature and Humidity Dashboard</CardTitle>
+      </CardHeader> */}
+      <CardContent className='p-0'>
+        <div className="mb-4 pt-8 pl-4 pr-4">
+          <Select onValueChange={handleRangeChange} defaultValue={range}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select time range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1H">Last 1 hour</SelectItem>
+              <SelectItem value="12H">Last 12 hours</SelectItem>
+              <SelectItem value="1D">Last 24 hours</SelectItem>
+              <SelectItem value="1W">Last 7 days</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid grid-cols-2 gap-4 mb-4 p-4">
+          <Card>
+            <CardContent className="flex items-center justify-between p-4">
+              <div className="flex items-center">
+                <Thermometer className="mr-2" style={{ color: '#8884d8' }} />
+                <div>
+                  <p className="text-sm font-medium" style={{ color: '#8884d8' }}>Temperature</p>
+                  <p className="text-2xl font-bold">{latestTemp ? formatTemperature(latestTemp) : 'N/A'}</p>
                 </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="flex items-center">
-                  <Droplets className="mr-2" />
-                  <div>
-                    <p className="text-sm font-medium">Humidity</p>
-                    <p className="text-2xl font-bold">{latestHumidity ? formatHumidity(latestHumidity) : 'N/A'}</p>
-                  </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center justify-between p-4">
+              <div className="flex items-center">
+                <Droplets className="mr-2" style={{ color: '#82ca9d' }} />
+                <div>
+                  <p className="text-sm font-medium" style={{ color: '#82ca9d' }}>Humidity</p>
+                  <p className="text-2xl font-bold">{latestHumidity ? formatHumidity(latestHumidity) : 'N/A'}</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={filteredData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="timestamp"
-                type="number"
-                scale="time"
-                domain={['auto', 'auto']}
-                tickFormatter={(unixTime) => formatXAxisTick(unixTime, range)}
-                ticks={generateTicks(filteredData, range)}
-              />
-              <YAxis
-                yAxisId="temp"
-                orientation="left"
-                domain={getTemperatureDomain()}
-                tickFormatter={(value) => `${value}°F`}
-              />
-              <YAxis
-                yAxisId="humidity"
-                orientation="right"
-                domain={getHumidityDomain()}
-                tickFormatter={(value) => `${value}%`}
-              />
-              <Tooltip
-                labelFormatter={(label) => new Date(label).toLocaleString()}
-                formatter={(value, name, props) => {
-                  if (name === "Temperature") return [`${value.toFixed(1)}°F`, "Temperature"];
-                  if (name === "Humidity") return [`${value.toFixed(1)}%`, "Humidity"];
-                }}
-              />
-              <Legend />
-              <Line yAxisId="temp" type="monotone" dataKey="temperature" stroke="#8884d8" name="Temperature" dot={false} />
-              <Line yAxisId="humidity" type="monotone" dataKey="humidity" stroke="#82ca9d" name="Humidity" dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-    </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={filteredData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="timestamp"
+              type="number"
+              scale="time"
+              domain={['auto', 'auto']}
+              tickFormatter={(unixTime) => formatXAxisTick(unixTime, range)}
+              ticks={generateTicks(filteredData, range)}
+              tick={{ fontSize: 10 }}
+            />
+            <YAxis
+              yAxisId="temp"
+              orientation="left"
+              domain={getTemperatureDomain()}
+              tick={{ fontSize: 10 }}
+              tickFormatter={(value) => `${value}°F`}
+            />
+            <YAxis
+              yAxisId="humidity"
+              orientation="right"
+              domain={getHumidityDomain()}
+              tickFormatter={(value) => `${value}%`}
+              tick={{ fontSize: 10 }}
+            />
+            <Tooltip
+              labelFormatter={(label) => new Date(label).toLocaleString()}
+              formatter={(value, name, props) => {
+                if (name === "Temperature") return [`${value.toFixed(1)}°F`, "Temperature"];
+                if (name === "Humidity") return [`${value.toFixed(1)}%`, "Humidity"];
+              }}
+            />
+
+            <Line yAxisId="temp" type="monotone" dataKey="temperature" stroke="#8884d8" name="Temperature" dot={false} />
+            <Line yAxisId="humidity" type="monotone" dataKey="humidity" stroke="#82ca9d" name="Humidity" dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card >
+
   );
 };
 
