@@ -232,7 +232,7 @@ const Dashboard = () => {
           </Card>
         </div>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={filteredData} margin={{ top: 5, right: -20, left: -20, bottom: 5 }}>
+          <LineChart data={filteredData} margin={{ top: 5, right: -25, left: -25, bottom: 5 }}>
             <CartesianGrid stroke="#333" strokeDasharray="3 3" />
             <XAxis
               dataKey="timestamp"
