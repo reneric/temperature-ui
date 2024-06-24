@@ -76,6 +76,6 @@
   }
 }
 
-body {
+body, .bg-card {
   background-color: rgb(25, 27, 28);
 }
