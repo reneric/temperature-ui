@@ -2,32 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  TimeScale,
-} from 'chart.js';
-import 'chartjs-adapter-date-fns';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Thermometer, Droplets } from 'lucide-react';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  TimeScale
-);
-
-const TemperatureGraph = () => {
+const Dashboard = () => {
   const [data, setData] = useState([]);
   const [latestTemp, setLatestTemp] = useState(null);
   const [latestHumidity, setLatestHumidity] = useState(null);
@@ -39,8 +19,10 @@ const TemperatureGraph = () => {
       .then(response => {
         const temperatureData = response.data.map(d => ({
           ...d,
-          timestamp: new Date(d.timestamp)
-        })).sort((a, b) => a.timestamp - b.timestamp); // Sort by timestamp
+          timestamp: new Date(d.timestamp).getTime(),
+          temperature: Math.round(parseFloat(d.temperature)) - 9,
+          humidity: parseFloat(d.humidity)
+        })).sort((a, b) => a.timestamp - b.timestamp);
 
         setData(temperatureData);
         filterData(temperatureData, range);
@@ -55,179 +37,195 @@ const TemperatureGraph = () => {
   };
 
   const filterData = (data, range) => {
-    const now = new Date();
+    const now = Date.now();
     let filtered = [];
 
     switch (range) {
       case '1H':
-        filtered = data.filter(d => now - d.timestamp <= 3600000); // Last 1 hour
+        filtered = data.filter(d => now - d.timestamp <= 3600000);
         break;
       case '12H':
-        filtered = data.filter(d => now - d.timestamp <= 43200000); // Last 12 hours
+        filtered = data.filter(d => now - d.timestamp <= 43200000);
         break;
       case '1D':
-        filtered = data.filter(d => now - d.timestamp <= 86400000); // Last 24 hours
+        filtered = data.filter(d => now - d.timestamp <= 86400000);
         break;
       case '1W':
-        filtered = data.filter(d => now - d.timestamp <= 604800000); // Last 1 week
+        filtered = data.filter(d => now - d.timestamp <= 604800000);
         break;
       default:
         filtered = data;
     }
 
+    console.log(`Filtered data for ${range}:`, filtered.length, "points");
     setFilteredData(filtered);
   };
 
-  const selectRange = (selectedRange) => {
+  const handleRangeChange = (selectedRange) => {
     setRange(selectedRange);
     filterData(data, selectedRange);
   };
 
   useEffect(() => {
-    fetchData(); // Fetch data on component mount
-
-    const intervalId = setInterval(fetchData, 60000); // Fetch data every 60 seconds
-
-    return () => clearInterval(intervalId); // Clear interval on component unmount
+    fetchData();
+    const intervalId = setInterval(fetchData, 60000);
+    return () => clearInterval(intervalId);
   }, []);
 
-  const chartData = {
-    labels: filteredData.map(d => d.timestamp),
-    datasets: [
-      {
-        label: 'Temperature (°F)',
-        data: filteredData.map(d => d.temperature),
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        fill: false,
-        tension: 0.1,
-        borderWidth: 0.5,
-        pointRadius: 0,
-        hitRadius: 0,
-        pointHoverRadius: 0,
-      },
-      {
-        label: 'Humidity (%)',
-        data: filteredData.map(d => d.humidity),
-        borderColor: 'rgba(153, 102, 255, 1)',
-        backgroundColor: 'rgba(153, 102, 255, 0.2)',
-        fill: false,
-        tension: 0.1,
-        borderWidth: 0.5,
-        pointRadius: 0,
-        hitRadius: 0,
-        pointHoverRadius: 0,
-      },
-    ],
+  const formatTemperature = (temp) => `${temp.toFixed(1)}°F`;
+  const formatHumidity = (humidity) => `${humidity.toFixed(1)}%`;
+
+  const generateTicks = (data, range) => {
+    if (data.length === 0) return [];
+    const start = new Date(data[0].timestamp);
+    const end = new Date(data[data.length - 1].timestamp);
+    const ticks = [];
+    let interval;
+
+    switch (range) {
+      case '1H':
+        interval = 10 * 60 * 1000; // 10 minutes
+        start.setMinutes(Math.floor(start.getMinutes() / 10) * 10, 0, 0);
+        break;
+      case '12H':
+        interval = 60 * 60 * 1000; // 1 hour
+        start.setMinutes(0, 0, 0);
+        break;
+      case '1D':
+        interval = 2 * 60 * 60 * 1000; // 2 hours
+        start.setMinutes(0, 0, 0);
+        break;
+      case '1W':
+        interval = 24 * 60 * 60 * 1000; // 1 day
+        start.setHours(0, 0, 0, 0);
+        break;
+      default:
+        interval = 60 * 60 * 1000; // 1 hour
+        start.setMinutes(0, 0, 0);
+    }
+
+    for (let d = start.getTime(); d <= end.getTime(); d += interval) {
+      ticks.push(d);
+    }
+    return ticks;
   };
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    aspectRatio: 1,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: 'Garage Temperature and Humidity',
-      },
-      tooltip: {
-        mode: 'nearest',
-        axis: 'x',
-        intersect: false,
-      },
-    },
-    interaction: {
-      mode: 'nearest',
-      axis: 'x',
-      intersect: false,
-    },
-    scales: {
-      x: {
-        type: 'time',
-        time: {
-          unit: 'hour',
-          stepSize: 1,
-          tooltipFormat: 'MMM dd, hh:mm a',
-          displayFormats: {
-            hour: 'h:mm a',
-          },
-        },
-        ticks: {
-          autoSkip: false,
-          maxRotation: 0,
-          minRotation: 0,
-        },
-      },
-      y: {
-        beginAtZero: false,
-      },
-    },
-    elements: {
-      line: {
-        borderWidth: 0.5,
-      },
-    },
+  const getTemperatureDomain = () => {
+    if (filteredData.length === 0) return [0, 100];
+    const temps = filteredData.map(d => d.temperature);
+    const min = Math.floor(Math.min(...temps));
+    const max = Math.ceil(Math.max(...temps));
+    return [min - 5, max + 5];
   };
 
-  const getButtonClass = (buttonRange) => (
-    `px-4 py-2 text-sm font-medium text-gray-900 border border-gray-200 
-    ${range === buttonRange ? 'bg-gray-100  dark:bg-gray-500' : 'bg-white hover:bg-gray-100 hover:text-blue-700 dark:bg-gray-800'}
-    focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 
-    dark:border-gray-700 dark:text-white dark:hover:text-white 
-    dark:hover:bg-gray-700 dark:focus:ring-blue-500 dark:focus:text-white`
-  );
+  const getHumidityDomain = () => {
+    if (filteredData.length === 0) return [0, 100];
+    const humidities = filteredData.map(d => d.humidity);
+    const min = Math.floor(Math.min(...humidities));
+    const max = Math.ceil(Math.max(...humidities));
+    return [min - 5, max + 5];
+  };
+
+  const formatXAxisTick = (unixTime, range) => {
+    const date = new Date(unixTime);
+    switch (range) {
+      case '1H':
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      case '12H':
+      case '1D':
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      case '1W':
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      default:
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+  };
+
+  console.log("Rendering chart with data:", filteredData);
 
   return (
-    <div className="container mx-auto">
-      <div className="inline-flex justify-end rounded-md shadow-sm mt-14" role="group">
-        <button
-          type="button"
-          className={`${getButtonClass('1H')} rounded-s-lg`}
-          onClick={() => selectRange('1H')}
-        >
-          1H
-        </button>
-        <button
-          type="button"
-          className={getButtonClass('12H')}
-          onClick={() => selectRange('12H')}
-        >
-          12H
-        </button>
-        <button
-          type="button"
-          className={getButtonClass('1D')}
-          onClick={() => selectRange('1D')}
-        >
-          1D
-        </button>
-        <button
-          type="button"
-          className={`${getButtonClass('1W')} rounded-e-lg`}
-          onClick={() => selectRange('1W')}
-        >
-          1W
-        </button>
-      </div>
-      <div className='header mt-10 grid grid-cols-2 gap-4'>
-        <div className='flex flex-col header-left'>
-          <h1 className="text-2xl font-bold mb-4">
-            {latestTemp}<span>°F</span>
-          </h1>
-        </div>
-        <div className='flex flex-col header-right'>
-          <h1 className="text-2xl font-bold mb-4">
-            {latestHumidity}<span>%</span>
-          </h1>
-        </div>
-      </div>
-
-      <Line data={chartData} options={options} />
+    <div className="p-4 max-w-4xl mx-auto">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">Garage Temperature and Humidity Dashboard</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4">
+            <Select onValueChange={handleRangeChange} defaultValue={range}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select time range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1H">Last 1 hour</SelectItem>
+                <SelectItem value="12H">Last 12 hours</SelectItem>
+                <SelectItem value="1D">Last 24 hours</SelectItem>
+                <SelectItem value="1W">Last 7 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <Card>
+              <CardContent className="flex items-center justify-between p-4">
+                <div className="flex items-center">
+                  <Thermometer className="mr-2" />
+                  <div>
+                    <p className="text-sm font-medium">Temperature</p>
+                    <p className="text-2xl font-bold">{latestTemp ? formatTemperature(latestTemp) : 'N/A'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex items-center justify-between p-4">
+                <div className="flex items-center">
+                  <Droplets className="mr-2" />
+                  <div>
+                    <p className="text-sm font-medium">Humidity</p>
+                    <p className="text-2xl font-bold">{latestHumidity ? formatHumidity(latestHumidity) : 'N/A'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={filteredData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="timestamp"
+                type="number"
+                scale="time"
+                domain={['auto', 'auto']}
+                tickFormatter={(unixTime) => formatXAxisTick(unixTime, range)}
+                ticks={generateTicks(filteredData, range)}
+              />
+              <YAxis
+                yAxisId="temp"
+                orientation="left"
+                domain={getTemperatureDomain()}
+                tickFormatter={(value) => `${value}°F`}
+              />
+              <YAxis
+                yAxisId="humidity"
+                orientation="right"
+                domain={getHumidityDomain()}
+                tickFormatter={(value) => `${value}%`}
+              />
+              <Tooltip
+                labelFormatter={(label) => new Date(label).toLocaleString()}
+                formatter={(value, name, props) => {
+                  if (name === "Temperature") return [`${value.toFixed(1)}°F`, "Temperature"];
+                  if (name === "Humidity") return [`${value.toFixed(1)}%`, "Humidity"];
+                }}
+              />
+              <Legend />
+              <Line yAxisId="temp" type="monotone" dataKey="temperature" stroke="#8884d8" name="Temperature" dot={false} />
+              <Line yAxisId="humidity" type="monotone" dataKey="humidity" stroke="#82ca9d" name="Humidity" dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default TemperatureGraph;
+export default Dashboard;
