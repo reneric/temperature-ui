@@ -188,7 +188,7 @@ const Dashboard = () => {
           </Card>
         </div>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={filteredData}>
+          <LineChart data={filteredData} margin={{ top: 5, right: -15, left: -15, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="timestamp"
